@@ -1,0 +1,632 @@
+<!--
+======================================================================
+                          FACE DOOR LOCK
+______________________________________________________________________
+  Author      : Rammuni Ravidu Suien Silva
+  Student No  : PS/2016/220
+  Group       : B07
+  Course Unit : PHYS 33542
+  Code        : Face Doorlock Frontend
+  SoC Module  : ESP32-CAM
+______________________________________________________________________
+  University of Kelaniya
+======================================================================
+-->
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="streamViewBoxport" content="width=device-width,initial-scale=1">
+  <title>Face Recognition based Door Lock</title>
+  <style>
+    /*CSS for the UI design*/
+    @media only screen and (min-width: 850px) {
+      body {
+        display: flex;
+      }
+
+      #content-right {
+        margin-left: 10px;
+      }
+    }
+
+    body {
+      background: rgb(75, 75, 75);
+      font-family: Georgia, serif;
+      font-weight: 400;
+    }
+
+    #content-left {
+      max-width: 400px;
+      flex: 1;
+    }
+
+    #content-right {
+      max-width: 400px;
+      flex: 1;
+    }
+
+    #stream {
+      width: 100%;
+    }
+
+    #status-display {
+      height: 25px;
+      border: none;
+      padding: 10px;
+      font: 18px/22px serif;
+      margin-bottom: 10px;
+      background: rgb(0, 56, 238);
+      text-align: center;
+    }
+
+    #person {
+      width: 100%;
+      height: 25px;
+      border: none;
+      padding: 20px 10px;
+      font: 18px/22px serif;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      resize: none;
+      box-sizing: border-box;
+    }
+
+    button {
+      background-color: #1149ff;
+      display: block;
+      margin: 5px 0;
+      padding: 0 12px;
+      border: 0;
+      width: 48%;
+      line-height: 28px;
+      cursor: pointer;
+      color: #fff;
+      font-size: 16px;
+      outline: 0;
+    }
+
+    button:disabled {
+      cursor: default;
+      background: #a0a0a0;
+    }
+
+    .left {
+      float: left;
+    }
+
+    .right {
+      float: right;
+    }
+
+    .image-container {
+      position: relative;
+    }
+
+    .stream {
+      max-width: 400px;
+    }
+
+    ul {
+      list-style: none;
+      padding: 5px;
+      margin: 0;
+    }
+
+    li {
+      padding: 5px 0;
+    }
+
+    .delete {
+      background: #ff3034;
+      border-radius: 100px;
+      color: #fff;
+      text-align: center;
+      line-height: 18px;
+      cursor: pointer;
+    }
+
+    h3 {
+      margin-bottom: 3px;
+    }
+
+    /*Style for the buttons in UI*/
+
+    .buttons {
+      height: 40px;
+      text-align: center;
+    }
+
+
+
+    h1 {
+      text-align: left;
+      color: #444;
+      letter-spacing: 0.05em;
+      margin: 0 0 0.4em;
+      font-size: 1em;
+    }
+
+    p {
+      text-align: left;
+      color: #444;
+      letter-spacing: 0.05em;
+      font-size: 0.8em;
+      margin: 0 0 2em;
+    }
+
+
+    .btn {
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 45px;
+      max-width: 160px;
+      position: relative;
+      text-decoration: none;
+      text-transform: uppercase;
+      width: 100%;
+      margin: 5px;
+    }
+
+    .btn:hover {
+      text-decoration: none;
+    }
+
+    /*btn_background*/
+    .effect01 {
+      color: #FFF;
+      border: 4px solid #000;
+      box-shadow: 0px 0px 0px 1px #000 inset;
+      background-color: #000;
+      overflow: hidden;
+      position: relative;
+      transition: all 0.3s ease-in-out;
+    }
+
+    .effect01:hover {
+      border: 4px solid #666;
+      background-color: #FFF;
+      box-shadow: 0px 0px 0px 4px #EEE inset;
+    }
+
+    .effect01 span {
+      transition: all 0.2s ease-out;
+      z-index: 2;
+    }
+
+    .effect01:hover span {
+      letter-spacing: 0.13em;
+      color: #333;
+    }
+
+    /*Highlight effect of the button*/
+    .effect01:after {
+      background: #FFF;
+      border: 0px solid #000;
+      content: "";
+      height: 155px;
+      left: -75px;
+      opacity: .8;
+      position: absolute;
+      top: -50px;
+      -webkit-transform: rotate(35deg);
+      transform: rotate(35deg);
+      width: 50px;
+      transition: all 1s cubic-bezier(0.075, 0.82, 0.165, 1);
+      /*easeOutCirc*/
+      z-index: 1;
+    }
+
+    .effect01:hover:after {
+      background: #FFF;
+      border: 20px solid #000;
+      opacity: 0;
+      left: 120%;
+      -webkit-transform: rotate(40deg);
+      transform: rotate(40deg);
+    }
+  </style>
+</head>
+
+<body id="main-web-body" style="display: none;">
+  <script>
+    var passCode = prompt("Enter PassCode");
+    if (passCode == 'TestAdmin'){
+      document.getElementById("main-web-body").style.display = 'inherit';
+    }
+  </script>
+  <div id="content-left">
+    <!-- Div containing the live stream of the camera-->
+    <div id="stream-container" class="image-container"> <img id="stream" src=""> </div>
+  </div>
+  <div id="content-right">
+    <!-- Div that show the status notifications-->
+    <div id="status-display"> <span id="current-status"></span> </div>
+    <div id="person-name">
+      <input id="person" type="text" value="" placeholder="Enter the person's email ID here">
+    </div>
+    <!-- Buttons for the core functionality-->
+    <div class="buttons">
+      <a id="button-stream" class="btn effect01 left"><span>START STREAM</span></a>
+      <a id="button-detect" class="btn effect01 right"><span>DETECTION ON</span></a>
+    </div>
+    <div class="buttons">
+      <a id="button-capture" class="btn effect01 left" title="Enter a name above before capturing a face"><span>ADD USER</span></a>
+      <a id="button-recognise" class="btn effect01 right"><span>ARM SYSTEM</span></a>
+    </div>
+    <div class="people">
+      <h3>Captured Faces</h3>
+      <ul>
+      </ul>
+    </div>
+    <div class="buttons">
+      <a id="delete_all" class="btn effect01 left"><span>DELETE ALL</span></a>
+    </div>
+  </div>
+
+  <script>
+    // main state variables
+    var unlocked = false; // stores the status of the lock
+    var faceNotRecog = true; // stores not recognized state
+
+    document.addEventListener("DOMContentLoaded", function (event) {
+      //URL generation for the stream
+      var mainHostURL = document.location.origin;
+      var streamUrl = mainHostURL + ":81";
+      const CAM_STREAM_URL = "ws://" + window.location.host + ":82";
+      const ws = new WebSocket(CAM_STREAM_URL);
+
+      // DOM objects references
+      const streamViewBox = document.getElementById("stream");
+      const emailIdField = document.getElementById("person");
+      const streamVidButton = document.getElementById("button-stream");
+      const detectFaceButton = document.getElementById("button-detect");
+      const captureNewFaceButton = document.getElementById("button-capture");
+      const recogniseFaceButton = document.getElementById("button-recognise");
+      const deleteAllFacesButton = document.getElementById("delete_all");
+
+      // Sound notification
+      a = new AudioContext();
+      function alertSound(w, x, y) { // params: gain, frequency, duration
+        v = a.createOscillator();
+        u = a.createGain();
+        v.connect(u);
+        v.frequency.value = x;
+        v.type = "square";
+        u.connect(a.destination);
+        u.gain.value = w * 0.01;
+        v.start(a.currentTime);
+        v.stop(a.currentTime + y * 0.001);
+      }
+
+      // Recieving messages from the ESP through opened socket
+      ws.onopen = () => {
+        console.log(`Connected to ${CAM_STREAM_URL}`);
+      };
+      ws.onmessage = message => {
+        if (typeof message.data === "string") {
+          if (message.data.substr(0, 8) == "listface") {
+            addFaceToScreen(message.data.substr(9));
+          } else if (message.data == "delete_faces") {
+            deleteAllFacesFromScreen();
+          } else if (message.data == "door_open") {//openinng of the lock
+            alertSound(10, 233, 100); alertSound(3, 603, 200);
+            unlocked = true;
+          } else {
+            document.getElementById("current-status").innerHTML = message.data;
+            document.getElementById("status-display").style.background = "green";
+            if (unlocked && message.data.substr(0, 9) == "DOOR OPEN") {//openinng of the lock
+              writeUserTimeData(message.data.substr(14));
+              unlocked = false;
+            } else if (faceNotRecog && message.data == "FACE NOT RECOGNISED") {//face is not recognised
+              writeUserTimeData("face_not_recognized");
+              faceNotRecog = false;
+            } else if (!faceNotRecog && message.data == "NO FACE DETECTED") {//not face is detected
+              faceNotRecog = true;
+            }
+          }
+        }
+        if (message.data instanceof Blob) {
+          var urlObject = URL.createObjectURL(message.data);
+          streamViewBox.src = urlObject;
+        }
+      }
+
+      // Event Handlers
+      streamVidButton.onclick = () => {
+        ws.send("stream");
+      };
+      detectFaceButton.onclick = () => {
+        ws.send("detect");
+      };
+      captureNewFaceButton.onclick = () => {
+        person_name = document.getElementById("person").value;
+        ws.send("capture:" + person_name);
+      };
+      recogniseFaceButton.onclick = () => {
+        ws.send("recognise");
+      };
+      deleteAllFacesButton.onclick = () => {
+        ws.send("delete_all");
+      };
+      emailIdField.onkeyup = () => {
+        captureNewFaceButton.disabled = false;
+      };
+
+      // Function for deleting all the faces in the UI
+      function deleteAllFacesFromScreen() {
+        // deletes face list in browser only
+        const regFaceList = document.querySelector("ul");
+        while (regFaceList.firstChild) {
+          regFaceList.firstChild.remove();
+        }
+        emailIdField.value = "";
+        captureNewFaceButton.disabled = true;
+      }
+
+      // Adding enrolled names to the UI
+      function addFaceToScreen(person_name) {
+        const regFaceList = document.querySelector("ul");
+        let regFaceListItem = document.createElement("li");
+        let regFaceCloseItem = document.createElement("span");
+        regFaceCloseItem.classList.add("delete");
+        regFaceCloseItem.id = person_name;
+        regFaceCloseItem.addEventListener("click", function () {
+          ws.send("remove:" + person_name);
+        });
+        regFaceListItem.appendChild(
+          document.createElement("strong")
+        ).textContent = person_name;
+        regFaceListItem.appendChild(regFaceCloseItem).textContent = "X";
+        regFaceList.appendChild(regFaceListItem);
+      }
+
+      captureNewFaceButton.disabled = true;
+    });
+  </script>
+  <script>
+    /*
+      * FileSaver.js
+      * A saveAs() FileSaver implementation.
+      *
+      * By Eli Grey, http://eligrey.com
+      *
+      * License : https://github.com/eligrey/FileSaver.js/blob/master/LICENSE.md (MIT)
+      * source  : http://purl.eligrey.com/github/FileSaver.js
+      */
+
+    // The one and only way of getting global scope in all environments
+    // https://stackoverflow.com/q/3277182/1008999
+    var _global = typeof window === 'object' && window.window === window
+      ? window : typeof self === 'object' && self.self === self
+        ? self : typeof global === 'object' && global.global === global
+          ? global
+          : this
+
+    function bom(blob, opts) {
+      if (typeof opts === 'undefined') opts = { autoBom: false }
+      else if (typeof opts !== 'object') {
+        console.warn('Deprecated: Expected third argument to be a object')
+        opts = { autoBom: !opts }
+      }
+
+      // prepend BOM for UTF-8 XML and text/* types (including HTML)
+      // note: your browser will automatically convert UTF-16 U+FEFF to EF BB BF
+      if (opts.autoBom && /^\s*(?:text\/\S*|application\/xml|\S*\/\S*\+xml)\s*;.*charset\s*=\s*utf-8/i.test(blob.type)) {
+        return new Blob([String.fromCharCode(0xFEFF), blob], { type: blob.type })
+      }
+      return blob
+    }
+
+    function download(url, name, opts) {
+      var xhr = new XMLHttpRequest()
+      xhr.open('GET', url)
+      xhr.responseType = 'blob'
+      xhr.onload = function () {
+        saveAs(xhr.response, name, opts)
+      }
+      xhr.onerror = function () {
+        console.error('could not download file')
+      }
+      xhr.send()
+    }
+
+    function corsEnabled(url) {
+      var xhr = new XMLHttpRequest()
+      // use sync to avoid popup blocker
+      xhr.open('HEAD', url, false)
+      try {
+        xhr.send()
+      } catch (e) { }
+      return xhr.status >= 200 && xhr.status <= 299
+    }
+
+    // `a.click()` doesn't work for all browsers (#465)
+    function click(node) {
+      try {
+        node.dispatchEvent(new MouseEvent('click'))
+      } catch (e) {
+        var evt = document.createEvent('MouseEvents')
+        evt.initMouseEvent('click', true, true, window, 0, 0, 0, 80,
+          20, false, false, false, false, 0, null)
+        node.dispatchEvent(evt)
+      }
+    }
+
+    // Detect WebstreamViewBox inside a native macOS app by ruling out all browsers
+    // We just need to check for 'Safari' because all other browsers (besides Firefox) include that too
+    // https://www.whatismybrowser.com/guides/the-latest-user-agent/macos
+    var isMacOSWebstreamViewBox = /Macintosh/.test(navigator.userAgent) && /AppleWebKit/.test(navigator.userAgent) && !/Safari/.test(navigator.userAgent)
+
+    var saveAs = _global.saveAs || (
+      // probably in some web worker
+      (typeof window !== 'object' || window !== _global)
+        ? function saveAs() { /* noop */ }
+
+        // Use download attribute first if possible (#193 Lumia mobile) unless this is a macOS WebstreamViewBox
+        : ('download' in HTMLAnchorElement.prototype && !isMacOSWebstreamViewBox)
+          ? function saveAs(blob, name, opts) {
+            var URL = _global.URL || _global.webkitURL
+            var a = document.createElement('a')
+            name = name || blob.name || 'download'
+
+            a.download = name
+            a.rel = 'noopener' // tabnabbing
+
+            // TODO: detect chrome extensions & packaged apps
+            // a.target = '_blank'
+
+            if (typeof blob === 'string') {
+              // Support regular links
+              a.href = blob
+              if (a.origin !== location.origin) {
+                corsEnabled(a.href)
+                  ? download(blob, name, opts)
+                  : click(a, a.target = '_blank')
+              } else {
+                click(a)
+              }
+            } else {
+              // Support blobs
+              a.href = URL.createObjectURL(blob)
+              setTimeout(function () { URL.revokeObjectURL(a.href) }, 4E4) // 40s
+              setTimeout(function () { click(a) }, 0)
+            }
+          }
+
+          // Use msSaveOrOpenBlob as a second approach
+          : 'msSaveOrOpenBlob' in navigator
+            ? function saveAs(blob, name, opts) {
+              name = name || blob.name || 'download'
+
+              if (typeof blob === 'string') {
+                if (corsEnabled(blob)) {
+                  download(blob, name, opts)
+                } else {
+                  var a = document.createElement('a')
+                  a.href = blob
+                  a.target = '_blank'
+                  setTimeout(function () { click(a) })
+                }
+              } else {
+                navigator.msSaveOrOpenBlob(bom(blob, opts), name)
+              }
+            }
+
+            // Fallback to using FileReader and a popup
+            : function saveAs(blob, name, opts, popup) {
+              // Open a popup immediately do go around popup blocker
+              // Mostly only available on user interaction and the fileReader is async so...
+              popup = popup || open('', '_blank')
+              if (popup) {
+                popup.document.title =
+                  popup.document.body.innerText = 'downloading...'
+              }
+
+              if (typeof blob === 'string') return download(blob, name, opts)
+
+              var force = blob.type === 'application/octet-stream'
+              var isSafari = /constructor/i.test(_global.HTMLElement) || _global.safari
+              var isChromeIOS = /CriOS\/[\d]+/.test(navigator.userAgent)
+
+              if ((isChromeIOS || (force && isSafari) || isMacOSWebstreamViewBox) && typeof FileReader !== 'undefined') {
+                // Safari doesn't allow downloading of blob URLs
+                var reader = new FileReader()
+                reader.onloadend = function () {
+                  var url = reader.result
+                  url = isChromeIOS ? url : url.replace(/^data:[^;]*;/, 'data:attachment/file;')
+                  if (popup) popup.location.href = url
+                  else location = url
+                  popup = null // reverse-tabnabbing #460
+                }
+                reader.readAsDataURL(blob)
+              } else {
+                var URL = _global.URL || _global.webkitURL
+                var url = URL.createObjectURL(blob)
+                if (popup) popup.location = url
+                else location.href = url
+                popup = null // reverse-tabnabbing #460
+                setTimeout(function () { URL.revokeObjectURL(url) }, 4E4) // 40s
+              }
+            }
+    )
+
+    _global.saveAs = saveAs.saveAs = saveAs
+
+    if (typeof module !== 'undefined') {
+      module.exports = saveAs;
+    }
+  </script>
+
+  <!-- The core Firebase JS SDK is always required and must be listed first -->
+  <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/3.1.0/firebase.js"></script>
+  <!-- TODO: Add SDKs for Firebase products that you want to use
+     https://firebase.google.com/docs/web/setup#available-libraries -->
+  <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-analytics.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-database.js"></script>
+
+  <script>
+    // Function for sending the notification email using SmtpJS.com - v3.0.0 
+    var Email = { send: function (a) { return new Promise(function (n, e) { a.nocache = Math.floor(1e6 * Math.random() + 1), a.Action = "Send"; var t = JSON.stringify(a); Email.ajaxPost("https://smtpjs.com/v3/smtpjs.aspx?", t, function (e) { n(e) }) }) }, ajaxPost: function (e, n, t) { var a = Email.createCORSRequest("POST", e); a.setRequestHeader("Content-type", "application/x-www-form-urlencoded"), a.onload = function () { var e = a.responseText; null != t && t(e) }, a.send(n) }, ajax: function (e, n) { var t = Email.createCORSRequest("GET", e); t.onload = function () { var e = t.responseText; null != n && n(e) }, t.send() }, createCORSRequest: function (e, n) { var t = new XMLHttpRequest; return "withCredentials" in t ? t.open(e, n, !0) : "undefined" != typeof XDomainRequest ? (t = new XDomainRequest).open(e, n) : t = null, t } };
+    function sendAccessNotifyEmail(email, details) {
+      Email.send({
+        Host: "smtp.gmail.com",
+        Username: "facedoornotify@gmail.com",
+        Password: "FaceDoor2020",
+        To: email,
+        From: "facedoornotify@gmail.com",
+        Subject: "[FaceDoorLock] Access Login Notification",
+        Body: "Following are your access information: " + details,
+      }).then(
+        message => console.log("mail sent successfully")
+      );
+    }
+
+
+    // Firebase configurations
+    var firebaseConfig = {
+      apiKey: "AIzaSyCXpAUAQyD7TLO2fkrIvP2Jd01-vTanajg",
+      authDomain: "elec-y3-project.firebaseapp.com",
+      databaseURL: "https://elec-y3-project.firebaseio.com",
+      projectId: "elec-y3-project",
+      storageBucket: "elec-y3-project.appspot.com",
+      messagingSenderId: "136459877158",
+      appId: "1:136459877158:web:27b2b50c86cc4eba7a1fe7",
+      measurementId: "G-J29H2LHQD3"
+    };
+    // Initializing Firebase database
+    firebase.initializeApp(firebaseConfig);
+    firebase.analytics();
+
+
+
+
+    // Get a reference to the database service
+    var database = firebase.database();
+    function writeUserTimeData(userId) {
+      var today = new Date();
+      var date = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
+      var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+      var dateTime = date + ' ' + time;
+      var emailBody = 'Date: ' + date + ' | Time: ' + time;
+      sendAccessNotifyEmail(userId.toString() + '@gmail.com', emailBody);
+
+      firebase.database().ref('users/' + userId + '/').push({
+        time: dateTime
+      });
+      var path = document.getElementById('stream').src;
+      var filename = userId + '-' + dateTime + '.png';
+
+      // Photo capture feature
+      saveAs(path, filename);
+
+    }
+  </script>
+</body>
+
+</html>
