@@ -23,8 +23,8 @@ ______________________________________________________________________
 #include "fr_flash.h"
 
 // Wifi credentials
-const char* ssid = "Scanning...";
-const char* password = "Suien077217";
+const char* ssid = "xxxxxxx";
+const char* password = "xxxxxxx";
 
 #define FACE_SAMPLES_COUNT 5
 #define FACE_COUNT_INDEX 7
